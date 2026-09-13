@@ -562,14 +562,16 @@ function pin(color){
 function openInfo(site,pos){
   const c = PHASES[stagePhase(site.stage)].color;
   const bs = buyStatus(site.stage);
-  const q = encodeURIComponent(dongOnly(site.addr).replace(/^서울\s*/,''));
+  const lat = pos.getLat().toFixed(6), lng = pos.getLng().toFixed(6);
+  // 네이버부동산 좌표 지도(빌라·다세대·단독·아파트 매물). /search/result는 단지명 검색이라 동이름이 안 먹혀 좌표 방식 사용
+  const naver = `https://new.land.naver.com/houses?ms=${lat},${lng},16&a=APT:VL:DDDGG:OPST&e=RETAIL`;
   const html = `<div class="iw">
     <b>${site.name}</b><span class="tag" style="background:${c}">${site.stage}</span><br>
     <span style="color:#6b7280">${site.gu} · ${ROUND_LABEL[site.round]}</span>
     <div class="meta"><span>📐 ${site.area}㎡</span><span>🏠 ${site.sedae}세대</span></div>
     <div style="margin-top:5px;font-size:12.5px;color:${bs.color};font-weight:600">${bs.icon} ${bs.txt}</div>
     <div>
-      <a href="https://m.land.naver.com/search/result/${q}" target="_blank" rel="noopener">🏠 매물·시세(네이버)</a>
+      <a href="${naver}" target="_blank" rel="noopener">🏠 매물·시세(네이버)</a>
       <a href="https://www.eum.go.kr/web/ar/lu/luLandDet.jsp" target="_blank" rel="noopener">🗺️ 용도지역</a>
       <a href="https://cleanup.seoul.go.kr/cleanup/view/publicIntgrPlanSttn.do" target="_blank" rel="noopener">📋 정비몽땅</a>
     </div></div>`;
