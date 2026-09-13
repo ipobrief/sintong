@@ -23,15 +23,18 @@
   input[type=text],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff}
   .chk{display:flex;align-items:center;gap:7px;font-size:13px;padding:5px 0;cursor:pointer}
   .chk .dot{width:10px;height:10px;border-radius:50%}
-  .count{font-size:12px;color:var(--muted);margin-top:6px}
+  .count{font-size:12px;color:var(--muted);margin-top:8px;font-weight:600}
   .note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:6px}
   #map{flex:1;position:relative}
   .banner{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:5;background:#fff3cd;border:1px solid #ffe69c;color:#664d03;padding:10px 14px;border-radius:10px;font-size:12.5px;box-shadow:var(--shadow);max-width:520px;line-height:1.5}
   .banner code{background:#00000010;padding:1px 5px;border-radius:4px}
-  .iw{padding:10px 12px;font-size:13px;line-height:1.5;min-width:190px}
+  .loading{position:absolute;top:12px;left:12px;z-index:5;background:#fff;border:1px solid var(--line);padding:6px 12px;border-radius:20px;font-size:12px;box-shadow:var(--shadow)}
+  .iw{padding:11px 13px;font-size:13px;line-height:1.55;min-width:210px}
   .iw b{font-size:14px}
   .iw .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:20px;color:#fff;margin-left:4px}
-  .iw a{display:inline-block;margin:6px 8px 0 0;font-size:12px;color:var(--accent);text-decoration:none}
+  .iw .meta{color:#4b5563;font-size:12px;margin-top:4px}
+  .iw .meta span{display:inline-block;margin-right:8px}
+  .iw a{display:inline-block;margin:7px 8px 0 0;font-size:12px;color:var(--accent);text-decoration:none}
   .iw a:hover{text-decoration:underline}
   @media(max-width:640px){#panel{width:100%;position:absolute;z-index:6;height:auto;max-height:55%;box-shadow:var(--shadow)}#main{position:relative}}
 </style>
@@ -39,7 +42,7 @@
 <div id="app">
   <header>
     <h1>🏙️ 신통기획 매물지도</h1>
-    <span class="sub">신속통합기획 선정지 · 용도지역 · 용적률 통합 탐색 (서울)</span>
+    <span class="sub">서울 신속통합기획 재개발 선정지 174곳 · 용도지역 · 용적률 탐색</span>
     <div class="legend">
       <span><b style="background:var(--r1)"></b>1차공모</span>
       <span><b style="background:var(--r2)"></b>2차공모</span>
@@ -50,143 +53,356 @@
   <div id="main">
     <aside id="panel">
       <div class="field">
-        <h2>🔍 구역명 검색</h2>
-        <input type="text" id="q" placeholder="예: 창신동, 상도동…" />
+        <h2>🔍 구역명·자치구 검색</h2>
+        <input type="text" id="q" placeholder="예: 창신, 상도, 신림…" />
       </div>
       <div class="field">
         <h2>자치구</h2>
         <select id="gu"><option value="">전체</option></select>
       </div>
       <div class="field">
-        <h2>선정 차수 (필터)</h2>
-        <label class="chk"><input type="checkbox" data-round="1차공모" checked><span class="dot" style="background:var(--r1)"></span>1차 공모</label>
-        <label class="chk"><input type="checkbox" data-round="2차공모" checked><span class="dot" style="background:var(--r2)"></span>2차 공모</label>
-        <label class="chk"><input type="checkbox" data-round="수시선정" checked><span class="dot" style="background:var(--r3)"></span>수시 선정</label>
-        <label class="chk"><input type="checkbox" data-round="기존구역" checked><span class="dot" style="background:var(--r4)"></span>기존 구역</label>
+        <h2>추진단계</h2>
+        <select id="stage"><option value="">전체</option></select>
+        <div class="note">초기(후보지선정·신통착수)일수록 진입 여지 큼, 후기(구역지정·시행자지정)일수록 확정성 큼</div>
+      </div>
+      <div class="field">
+        <h2>선정 차수</h2>
+        <label class="chk"><input type="checkbox" data-round="1차공모" checked><span class="dot" style="background:var(--r1)"></span>1차 공모 (21)</label>
+        <label class="chk"><input type="checkbox" data-round="2차공모" checked><span class="dot" style="background:var(--r2)"></span>2차 공모 (23)</label>
+        <label class="chk"><input type="checkbox" data-round="수시선정" checked><span class="dot" style="background:var(--r3)"></span>수시 선정 (100)</label>
+        <label class="chk"><input type="checkbox" data-round="기존구역" checked><span class="dot" style="background:var(--r4)"></span>기존 구역 (30)</label>
         <div class="count" id="count">—</div>
       </div>
       <div class="field">
-        <h2>참고 레이어</h2>
+        <h2>ℹ️ 안내</h2>
         <div class="note">
-          마커 클릭 → <b>용도지역·용적률</b>은 토지이음/건축물대장으로 바로 이동해 확인합니다.
-          (용도지역 지도 오버레이는 브이월드 연동 예정)
-        </div>
-      </div>
-      <div class="field">
-        <h2>ℹ️ 데이터</h2>
-        <div class="note">
-          현재 지도의 선정지는 <b>확인된 실제 시드 샘플</b>입니다.
-          전체 약 174개 구역(1·2차+수시+기존)은 정비몽땅 표에서 수집해 채울 예정입니다.
-          좌표는 저장하지 않고 <b>구역 주소를 실시간 지오코딩</b>합니다.
+          출처: 서울시 정비사업 정보몽땅('26.5.31 기준). 마커 위치는 구역 주소를 실시간 지오코딩한 값으로,
+          지번이 없는 구역은 <b>동(洞) 중심점</b>에 표시됩니다(정확한 경계 아님).
+          마커 클릭 → 용도지역·용적률은 토지이음/건축물대장에서 확인.
         </div>
       </div>
     </aside>
     <div id="map">
       <div class="banner" id="banner" style="display:none"></div>
+      <div class="loading" id="loading" style="display:none">지도 위치 계산 중…</div>
     </div>
   </div>
 </div>
 
 <script>
-/* ─────────────────────────────────────────────────────────────
-   설정: 카카오맵 JavaScript 키
-   1) https://developers.kakao.com → 애플리케이션 추가
-   2) [앱 키] → JavaScript 키 복사해서 아래에 붙여넣기
-   3) [플랫폼] → Web → 사이트 도메인 등록
-      · 로컬 테스트: http://localhost  (또는 파일 직접 열기용 http://127.0.0.1)
-      · 배포:       https://ipobrief.github.io
-   ───────────────────────────────────────────────────────────── */
+/* 카카오맵 JavaScript 키 (현장人 앱 - 무료 쿼터 / 도메인 ipobrief.github.io 등록됨) */
 const KAKAO_JS_KEY = "1b2af1b1decfd08ba0216ed2bec18380";
 
-/* 신통기획 선정지 데이터 (시드).
-   전체 목록은 정비몽땅에서 수집 예정. addr = 지오코딩용 주소(동+지번).
-   round: 1차공모 | 2차공모 | 수시선정 | 기존구역 */
-const SINTONG_SITES = [
-  { gu:"종로구",   name:"창신동 23-606 일대", addr:"서울 종로구 창신동 23-606", round:"수시선정" },
-  { gu:"용산구",   name:"청파2구역",          addr:"서울 용산구 청파동2가",     round:"기존구역" },
-  { gu:"용산구",   name:"용산동2가 일대",     addr:"서울 용산구 용산동2가",     round:"수시선정" },
-  { gu:"성동구",   name:"마장동 일대",        addr:"서울 성동구 마장동",        round:"수시선정" },
-  { gu:"도봉구",   name:"방학동 일대",        addr:"서울 도봉구 방학동",        round:"수시선정" },
-  { gu:"동작구",   name:"상도동 일대",        addr:"서울 동작구 상도동",        round:"수시선정" },
-  { gu:"동작구",   name:"사당동 419-1 일대",  addr:"서울 동작구 사당동 419-1",  round:"수시선정" },
-  { gu:"금천구",   name:"독산동 일대",        addr:"서울 금천구 독산동",        round:"수시선정" },
-  { gu:"영등포구", name:"신길동 일대",        addr:"서울 영등포구 신길동",      round:"수시선정" },
-];
-
-const ROUND_COLOR = {
-  "1차공모":"#e2483d", "2차공모":"#f59e0b", "수시선정":"#16a34a", "기존구역":"#7c3aed"
+/* 신통기획 재개발 선정구역 데이터 (정비몽땅, '26.5.31 기준)
+   각 행: [자치구, 구역명, 면적㎡, 세대수, 추진단계] */
+const RAW = {
+  "1차공모": [
+    ["중랑구","면목7","58,401","1,447","시행자지정(조합)"],
+    ["도봉구","쌍문3","15,036","320","시행자지정(조합)"],
+    ["강동구","천호A1-2","30,700","781","시행자지정(조합)"],
+    ["강서구","방화2","34,900","728","통심완료"],
+    ["금천구","시흥1","68,202","1,170","구역지정"],
+    ["송파구","마천5","106,514","2,041","시행자지정(조합)"],
+    ["관악구","신림7","75,600","1,402","구역지정"],
+    ["은평구","불광동 600","13,145","321","구역지정"],
+    ["용산구","청파2","82,558","1,905","구역지정"],
+    ["마포구","공덕8","84,389","1,564","추진위구성"],
+    ["종로구","창신동 23-2","64,822","1,038","구역지정"],
+    ["종로구","숭인동 56-4","42,402","974","구역지정"],
+    ["양천구","신월7-1","130,484","1,214","시행자지정(신탁)"],
+    ["구로구","가리봉2","41,515","1,214","추진위구성"],
+    ["노원구","상계5","216,365","4,591","구역지정"],
+    ["영등포구","당산1","30,973","737","추진위구성"],
+    ["서대문구","홍은15","88,256","1,834","시행자지정(조합)"],
+    ["성북구","하월곡1","78,371","1,990","추진위구성"],
+    ["동작구","상도14","50,788","1,191","시행자지정(신탁)"],
+    ["동대문구","청량리19","28,647","843","추진위구성"],
+    ["성동구","마장동 382","17,825","262","추진위구성"]
+  ],
+  "2차공모": [
+    ["금천구","독산시흥","88,326","2,072","시행자지정(신탁)"],
+    ["용산구","서계동 33","112,953","2,691","추진위구성"],
+    ["성북구","석관4","64,876","1,530","추진위구성"],
+    ["중랑구","상봉13","49,586","1,249","추진위구성"],
+    ["구로구","고척동 253","63,123","1,469","추진위구성"],
+    ["구로구","가리봉동 115","83,950","2,259","시행자지정(조합)"],
+    ["동작구","상도15","141,287","3,204","통심완료"],
+    ["도봉구","방학3","74,390","1,650","구역지정"],
+    ["송파구","마천2","77,338","1,729","구역지정"],
+    ["성북구","종암8","26,712","694","추진위구성"],
+    ["영등포구","대림1","42,430","1,026","추진위구성"],
+    ["강북구","번동 441-3","32,877","959","추진위구성"],
+    ["양천구","목2동 232","22,315","586","추진위구성"],
+    ["광진구","자양4동 57-90","139,130","2,999","구역지정"],
+    ["성동구","사근동 293","30,300","526","심의"],
+    ["은평구","신사동 237(산새마을)","55,209","1,360","시행자지정(신탁)"],
+    ["은평구","신사동 200(편백마을)","63,496","1,536","구역지정"],
+    ["관악구","신림5","169,069","3,900","구역지정"],
+    ["종로구","창신9","143,149","2,566","구역지정"],
+    ["종로구","창신10","92,191","1,875","구역지정"],
+    ["동대문구","용두3","23,766","702","추진위구성"],
+    ["강북구","미아동 791-2882","140,696","2,670","추진위구성"],
+    ["동작구","사당동 288","26,197","627","추진위구성"]
+  ],
+  "수시선정": [
+    ["중랑구","면목8","47,798","1,260","구역지정"],
+    ["성북구","종암9","32,740","854","추진위구성"],
+    ["서대문구","홍제4","28,270","560","구역지정"],
+    ["동대문구","전농152-65","71,738","1,434","신통착수"],
+    ["성북구","성북3","67,308","1,346","신통착수"],
+    ["마포구","망원1","78,695","1,573","신통착수"],
+    ["구로구","개봉7","60,704","1,364","구역지정"],
+    ["구로구","오류동 4","55,977","1,250","구역지정"],
+    ["금천구","독산1","79,036","1,580","구역지정"],
+    ["금천구","독산2","81,663","1,633","구역지정"],
+    ["관악구","신림8","92,041","2,250","구역지정"],
+    ["도봉구","쌍문81","64,316","1,919","구역지정"],
+    ["동대문구","장안동 134-15","67,758","1,359","심의"],
+    ["양천구","신월 5-72","29,665","593","주민공람"],
+    ["성북구","정릉 898-16","53,971","1,079","신통착수"],
+    ["강북구","미아동 345-1","44,061","1,215","심의"],
+    ["관악구","신림6","43,247","992","구역지정"],
+    ["영등포구","신길16-2","34,445","685","심의"],
+    ["용산구","동후암1","104,070","2,081","신통착수"],
+    ["용산구","동후암3","82,173","1,643","신통착수"],
+    ["용산구","중화6","45,505","911","구역지정"],
+    ["서대문구","홍제동 9-81","119,734","2,395","신통착수"],
+    ["동작구","사당동 63-1","41,276","875","구역지정"],
+    ["중랑구","면목동 174-1","35,970","719","심의"],
+    ["광진구","자양동 227-147","40,837","817","심의"],
+    ["강북구","미아동 130","71,060","1,421","심의"],
+    ["서대문구","홍제동 287-118","15,345","307","신통착수"],
+    ["강북구","미아동 75","55,001","1,100","신통통보"],
+    ["용산구","이태원동 730","44,035","881","신통착수"],
+    ["관악구","신림동 306","40,437","809","신통통보"],
+    ["서대문구","북가좌동 74-107","26,164","523","신통착수"],
+    ["광진구","중곡1동 254-15","81,344","1,627","주민공람"],
+    ["구로구","개봉동 120-1","76,164","1,523","신통통보"],
+    ["구로구","구로동 719","44,232","885","후보지선정"],
+    ["동작구","사당동 305-35","41,317","826","신통착수"],
+    ["은평구","불광동 359-1","104,783","2,096","신통착수"],
+    ["성북구","장위13-1","131,226","2,625","신통통보"],
+    ["성북구","장위13-2","110,642","2,213","신통통보"],
+    ["성북구","정릉2","24,138","483","신통착수"],
+    ["관악구","신림10","196,841","3,937","신통착수"],
+    ["관악구","신림9","16,899","338","신통착수"],
+    ["양천구","신정4동 922","84,187","1,684","신통착수"],
+    ["도봉구","쌍문동 26","39,500","790","신통통보"],
+    ["금천구","독산동B","121,831","2,437","신통착수"],
+    ["영등포구","신길동 3922(신풍역)","33,897","678","신통통보"],
+    ["은평구","응암동 675","40,696","814","신통통보"],
+    ["용산구","청파동1가 97-35","49,211","984","신통착수"],
+    ["용산구","신창동 29-1일대","16,024","320","용역착수"],
+    ["구로구","구로동 466일대","63,871","1,277","신통착수"],
+    ["구로구","개봉동 153-19일대","27,100","542","신통착수"],
+    ["도봉구","방학동 641일대","72,282","1,446","신통착수"],
+    ["동작구","신대방3","29,461","589","신통착수"],
+    ["동작구","흑석10","45,882","918","신통착수"],
+    ["동작구","상도23","80,937","1,619","신통착수"],
+    ["성북구","삼선3","56,770","1,135","신통착수"],
+    ["도봉구","방학동 638","39,271","785","신통착수"],
+    ["동작구","상도동 214(상도16)","85,788","1,715","신통착수"],
+    ["동작구","사당동 416-1(사당15)","133,077","2,661","신통착수"],
+    ["영등포구","도림동 133-1","63,654","1,273","신통착수"],
+    ["강북구","미아동 159","37,710","754","신통착수"],
+    ["마포구","아현동 331-29","18,557","371","신통착수"],
+    ["용산구","용산동2가 1-1351","43,017","860","용역착수"],
+    ["금천구","시흥4동 1","24,902","498","신통착수"],
+    ["종로구","행촌동 210-2","76,310","1,526","신통착수"],
+    ["마포구","합정동 444-12","40,736","814","신통착수"],
+    ["용산구","이태원동 214-37","66,986","1,339","용역착수"],
+    ["용산구","용산동2가 1-597","53,735","1,074","후보지선정"],
+    ["은평구","녹번동 35-78","20,321","406","후보지선정"],
+    ["구로구","구로동 739-7","92,521","1,850","신통착수"],
+    ["금천구","독산동 979","93,991","1,879","후보지선정"],
+    ["금천구","독산동 1022","83,203","1,664","신통착수"],
+    ["영등포구","신길동 90-31","58,162","1,163","신통착수"],
+    ["성북구","정릉동 16-179","42,811","856","후보지선정"],
+    ["성동구","행당동 300-1","42,811","856","후보지선정"],
+    ["마포구","행당동 300-1","42,811","894","신통착수"],
+    ["강북구","수유동 310-15","15,945","318","신통착수"],
+    ["은평구","신사동 300","30,222","604","후보지선정"],
+    ["구로구","개봉동 66-15","109,371","2,187","후보지선정"],
+    ["구로구","구로동 792-33","58,473","1,169","후보지선정"],
+    ["은평구","불광동 442","109,365","2,187","후보지선정"],
+    ["은평구","불광동 445","89,537","1,790","후보지선정"],
+    ["서대문구","옥천동 123-2","9,864","197","후보지선정"],
+    ["광진구","구의동 46","105,957","2,119","후보지선정"],
+    ["성동구","용답동 15","95,890","1,917","후보지선정"],
+    ["도봉구","창동 608","66,396","1,327","후보지선정"],
+    ["광진구","중곡동 232-1","63,963","1,279","후보지선정"],
+    ["양천구","신월1동 229","57,832","1,156","후보지선정"],
+    ["용산구","용산동2가 44-3","73,071","1,461","후보지선정"],
+    ["용산구","원효로4가 110-1","14,526","290","후보지선정"],
+    ["강북구","수유동 442-10","41,731","834","후보지선정"],
+    ["강북구","수유동 486","72,364","1,447","후보지선정"],
+    ["강동구","천호동 392-9","40,593","811","후보지선정"],
+    ["동작구","사당동 77-24","25,195","503","후보지선정"],
+    ["동작구","사당동 1026-10","113,859","2,277","후보지선정"],
+    ["동작구","노량진동 205-269","59,308","1,186","후보지선정"],
+    ["구로구","구로동 400","27,307","546","후보지선정"],
+    ["구로구","온수동 62","10,927","218","후보지선정"],
+    ["은평구","불광동 16-111","38,296","765","후보지선정"],
+    ["서대문구","북가좌동 3-1911","77,001","1,540","후보지선정"],
+    ["서대문구","연희동 170-14","35,624","712","후보지선정"]
+  ],
+  "기존구역": [
+    ["중구","을지로3-6","4,993","-","준공"],
+    ["종로구","공평15,16","12,860","-","준공"],
+    ["동작구","흑석11","89,333","1,515","착공"],
+    ["관악구","신림1","223,169","4,185","인가완료"],
+    ["중구","신당10","63,893","1,423","시행자지정(조합)"],
+    ["강동구","천호3-2","19,292","420","통심완료"],
+    ["양천구","신정1-5","44,083","956","시행자지정(조합)"],
+    ["강동구","천호3-3","24,620","568","시행자지정(조합)"],
+    ["성동구","금호21","75,447","1,219","시행자지정(조합)"],
+    ["마포구","공덕7","29,972","703","시행자지정(조합)"],
+    ["성동구","성수전략1","194,398","1,181","구역지정"],
+    ["성동구","성수전략2","131,980","-","구역지정"],
+    ["성동구","성수전략3","114,193","-","구역지정"],
+    ["성동구","성수전략4","89,828","-","통심완료"],
+    ["강동구","천호3-1","28,058","634","통심완료"],
+    ["은평구","갈현동12-248","40,178","896","구역지정"],
+    ["강북구","번동 148일대","97,536","3,125","구역지정"],
+    ["강북구","미아동 258","145,065","4,236","구역지정"],
+    ["종로구","관수동","1,496","-","구역지정"],
+    ["종로구","충신동91-6","78,000","-","신통착수"],
+    ["중구","남대문로5가","18,000","-","신통착수"],
+    ["중구","무교다동4","4,243","-","주민공람"],
+    ["강북구","미아7구역","24,707","250","신통통보"],
+    ["마포구","신촌지역 마포3구역3지구","2,996","298","구역지정"],
+    ["중구","소공4구역 8지구","1,296","298","주민공람"],
+    ["중구","을지로2가구역 10,11지구","5,900","-","주민공람"],
+    ["종로구","사직2구역","34,262","592","신통자문"],
+    ["영등포구","영등포 도심 역세권","23,120","998","신통통보"],
+    ["중구","무교다동구역 15·16지구","7,054","-","신통자문"],
+    ["중구","을지로2가구역 1·3·6·19지구","14,023","-","신통자문"]
+  ]
 };
 
+/* 지번이 없거나 구역코드형이라 자동 지오코딩이 어려운 구역의 주소 보정(동 단위) */
+const ADDR = {
+  "독산시흥":"서울 금천구 독산동",
+  "동후암1":"서울 용산구 후암동",
+  "동후암3":"서울 용산구 후암동",
+  "을지로3-6":"서울 중구 을지로3가",
+  "성수전략1":"서울 성동구 성수동2가",
+  "성수전략2":"서울 성동구 성수동2가",
+  "성수전략3":"서울 성동구 성수동2가",
+  "성수전략4":"서울 성동구 성수동2가",
+  "남대문로5가":"서울 중구 남대문로5가",
+  "무교다동4":"서울 중구 다동",
+  "무교다동구역 15·16지구":"서울 중구 다동",
+  "영등포 도심 역세권":"서울 영등포구 영등포동",
+  "미아7구역":"서울 강북구 미아동",
+  "소공4구역 8지구":"서울 중구 소공동",
+  "을지로2가구역 10,11지구":"서울 중구 을지로2가",
+  "을지로2가구역 1·3·6·19지구":"서울 중구 을지로2가",
+  "사직2구역":"서울 종로구 사직동",
+  "신촌지역 마포3구역3지구":"서울 마포구 노고산동"
+};
+
+const ROUND_COLOR = { "1차공모":"#e2483d","2차공모":"#f59e0b","수시선정":"#16a34a","기존구역":"#7c3aed" };
+
+/* 구역명 → 지오코딩 주소 추론 */
+function toQuery(gu, name){
+  if(ADDR[name]) return ADDR[name];
+  let n = name.replace(/\(.*?\)/g,'').replace(/일대/g,'').trim();
+  let m = n.match(/([가-힣]+(?:\d+가|동))\s*(\d[\d\-]*)/);   // 명시적 지번
+  if(m) return '서울 '+gu+' '+m[1]+' '+m[2];
+  let kor = (n.match(/^[가-힣]+/)||[''])[0];                 // 구역코드형 → 동 중심
+  if(!kor) return '서울 '+gu;
+  let dong = /(동|가)$/.test(kor) ? kor : kor+'동';
+  return '서울 '+gu+' '+dong;
+}
+
+/* 데이터 평탄화 */
+const SITES = [];
+Object.keys(RAW).forEach(round=>{
+  RAW[round].forEach(r=>{
+    SITES.push({ gu:r[0], name:r[1], area:r[2], sedae:r[3], stage:r[4], round:round, addr:toQuery(r[0], r[1]) });
+  });
+});
+
 let map, geocoder, infoWindow;
-const markers = []; // {site, marker}
+const markers = [];
+const CACHE_KEY = 'sintong_geo_v1';
+let geoCache = {};
+try{ geoCache = JSON.parse(localStorage.getItem(CACHE_KEY)||'{}'); }catch(e){ geoCache = {}; }
 
 function boot(){
-  if(KAKAO_JS_KEY === "YOUR_KAKAO_JS_KEY" || !KAKAO_JS_KEY){
-    showBanner('⚙️ 카카오맵 JavaScript 키를 넣어주세요. index.html 상단 <code>KAKAO_JS_KEY</code> 값을 발급받은 키로 교체하고, 개발자 콘솔에 도메인(<code>localhost</code>, <code>ipobrief.github.io</code>)을 등록하면 지도가 표시됩니다.');
-    return;
-  }
   const s = document.createElement('script');
   s.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services&autoload=false`;
-  s.onerror = () => showBanner('❌ 카카오맵 SDK 로드 실패 — 키/도메인 등록을 확인하세요.');
-  s.onload = () => kakao.maps.load(initMap);
+  s.onerror = ()=>showBanner('❌ 카카오맵 SDK 로드 실패 — 키/도메인 등록을 확인하세요.');
+  s.onload = ()=>kakao.maps.load(initMap);
   document.head.appendChild(s);
 }
 
 function initMap(){
   map = new kakao.maps.Map(document.getElementById('map'), {
-    center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울시청
-    level: 8
+    center: new kakao.maps.LatLng(37.5665, 126.9780), level: 8
   });
   geocoder = new kakao.maps.services.Geocoder();
   infoWindow = new kakao.maps.InfoWindow({ removable:true });
-
-  buildGuOptions();
-  geocodeAll();
+  buildOptions();
   wireControls();
+  geocodeAll();
 }
 
-function buildGuOptions(){
-  const gus = [...new Set(SINTONG_SITES.map(s=>s.gu))].sort();
-  const sel = document.getElementById('gu');
-  gus.forEach(g=>{ const o=document.createElement('option'); o.value=g; o.textContent=g; sel.appendChild(o); });
+function buildOptions(){
+  const gus = [...new Set(SITES.map(s=>s.gu))].sort();
+  const guSel = document.getElementById('gu');
+  gus.forEach(g=>{ const o=document.createElement('option'); o.value=g; o.textContent=g; guSel.appendChild(o); });
+  const stages = [...new Set(SITES.map(s=>s.stage))].sort();
+  const stSel = document.getElementById('stage');
+  stages.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; stSel.appendChild(o); });
 }
 
 function geocodeAll(){
-  let done=0;
-  SINTONG_SITES.forEach(site=>{
+  document.getElementById('loading').style.display='block';
+  let done=0, total=SITES.length;
+  const finish=()=>{ done++; if(done===total){ document.getElementById('loading').style.display='none';
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify(geoCache)); }catch(e){} applyFilter(); } };
+
+  SITES.forEach(site=>{
+    const c = geoCache[site.addr];
+    if(c){ placeMarker(site, new kakao.maps.LatLng(c.y, c.x)); finish(); return; }
     geocoder.addressSearch(site.addr, (res, status)=>{
-      done++;
-      if(status === kakao.maps.services.Status.OK && res[0]){
-        const pos = new kakao.maps.LatLng(res[0].y, res[0].x);
-        const marker = new kakao.maps.Marker({ position:pos, map, image:pin(ROUND_COLOR[site.round]||'#333') });
-        kakao.maps.event.addListener(marker,'click',()=>openInfo(site,pos));
-        markers.push({ site, marker });
+      if(status===kakao.maps.services.Status.OK && res[0]){
+        geoCache[site.addr] = { x:res[0].x, y:res[0].y };
+        placeMarker(site, new kakao.maps.LatLng(res[0].y, res[0].x));
       }else{
-        console.warn('지오코딩 실패:', site.addr, status);
+        console.warn('지오코딩 실패:', site.gu, site.name, '→', site.addr, status);
       }
-      if(done===SINTONG_SITES.length){ applyFilter(); }
+      finish();
     });
   });
 }
 
+function placeMarker(site, pos){
+  const marker = new kakao.maps.Marker({ position:pos, image:pin(ROUND_COLOR[site.round]) });
+  kakao.maps.event.addListener(marker,'click',()=>openInfo(site,pos));
+  markers.push({ site, marker });
+}
+
 function pin(color){
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='26' height='34' viewBox='0 0 26 34'>
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 26 34'>
     <path d='M13 0C6 0 0 5.6 0 12.6 0 22 13 34 13 34s13-12 13-21.4C26 5.6 20 0 13 0z' fill='${color}'/>
     <circle cx='13' cy='12.5' r='5' fill='#fff'/></svg>`;
   return new kakao.maps.MarkerImage(
     'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg))),
-    new kakao.maps.Size(26,34), { offset:new kakao.maps.Point(13,34) }
-  );
+    new kakao.maps.Size(24,32), { offset:new kakao.maps.Point(12,32) });
 }
 
 function openInfo(site,pos){
-  const c = ROUND_COLOR[site.round]||'#333';
+  const c = ROUND_COLOR[site.round];
   const q = encodeURIComponent(site.addr);
   const html = `<div class="iw">
-    <b>${site.name}</b><span class="tag" style="background:${c}">${site.round}</span><br>
-    <span style="color:#6b7280">${site.gu}</span>
+    <b>${site.name}</b><span class="tag" style="background:${c}">${site.round.replace('공모',' 공모').replace('선정',' 선정').replace('구역',' 구역')}</span><br>
+    <span style="color:#6b7280">${site.gu} · ${site.stage}</span>
+    <div class="meta"><span>📐 ${site.area}㎡</span><span>🏠 ${site.sedae}세대</span></div>
     <div>
-      <a href="https://www.eum.go.kr/web/ar/lu/luLandDet.jsp" target="_blank" rel="noopener">🗺️ 용도지역(토지이음)</a>
+      <a href="https://www.eum.go.kr/web/ar/lu/luLandDet.jsp" target="_blank" rel="noopener">🗺️ 용도지역</a>
       <a href="https://cleanup.seoul.go.kr/cleanup/view/publicIntgrPlanSttn.do" target="_blank" rel="noopener">📋 정비몽땅</a>
       <a href="https://m.land.naver.com/search/result/${q}" target="_blank" rel="noopener">🏠 네이버부동산</a>
     </div></div>`;
@@ -198,27 +414,28 @@ function openInfo(site,pos){
 function wireControls(){
   document.getElementById('q').addEventListener('input', applyFilter);
   document.getElementById('gu').addEventListener('change', applyFilter);
+  document.getElementById('stage').addEventListener('change', applyFilter);
   document.querySelectorAll('[data-round]').forEach(cb=>cb.addEventListener('change', applyFilter));
 }
 
 function applyFilter(){
   const q = document.getElementById('q').value.trim();
   const gu = document.getElementById('gu').value;
+  const stage = document.getElementById('stage').value;
   const rounds = new Set([...document.querySelectorAll('[data-round]:checked')].map(c=>c.dataset.round));
   let n=0;
   markers.forEach(({site,marker})=>{
     const ok = rounds.has(site.round)
       && (!gu || site.gu===gu)
+      && (!stage || site.stage===stage)
       && (!q || site.name.includes(q) || site.gu.includes(q));
     marker.setMap(ok?map:null);
     if(ok) n++;
   });
-  document.getElementById('count').textContent = `표시: ${n} / ${markers.length}곳 (지오코딩 완료 기준)`;
+  document.getElementById('count').textContent = `지도 표시: ${n}곳  (지오코딩 ${markers.length}/${SITES.length})`;
 }
 
-function showBanner(html){
-  const b=document.getElementById('banner'); b.innerHTML=html; b.style.display='block';
-}
+function showBanner(html){ const b=document.getElementById('banner'); b.innerHTML=html; b.style.display='block'; }
 
 boot();
 </script>
