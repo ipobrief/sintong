@@ -43,12 +43,7 @@
   <header>
     <h1>🏙️ 신통기획 매물지도</h1>
     <span class="sub">서울 신속통합기획 재개발 선정지 174곳 · 용도지역 · 용적률 탐색</span>
-    <div class="legend">
-      <span><b style="background:var(--r1)"></b>1차공모</span>
-      <span><b style="background:var(--r2)"></b>2차공모</span>
-      <span><b style="background:var(--r3)"></b>수시선정</span>
-      <span><b style="background:var(--r4)"></b>기존구역</span>
-    </div>
+    <div class="legend" id="legend"></div>
   </header>
   <div id="main">
     <aside id="panel">
@@ -61,16 +56,29 @@
         <select id="gu"><option value="">전체</option></select>
       </div>
       <div class="field">
-        <h2>추진단계</h2>
+        <h2>추진단계 (진행 순서)</h2>
         <select id="stage"><option value="">전체</option></select>
-        <div class="note">초기(후보지선정·신통착수)일수록 진입 여지 큼, 후기(구역지정·시행자지정)일수록 확정성 큼</div>
+        <div class="note">위→아래로 진행됩니다. <b>①초기</b>일수록 매입가 낮고 진입 여지 큼(불확실성↑), <b>③④후기</b>일수록 확정성 높음(프리미엄↑).</div>
       </div>
       <div class="field">
-        <h2>선정 차수</h2>
+        <h2>🗺️ 용도지역 색상</h2>
+        <label class="chk"><input type="checkbox" id="useDistrict"><span>지적편집도 켜기 (준공업·상업 등)</span></label>
+        <div class="note" id="udLegend" style="display:none"></div>
+      </div>
+      <div class="field">
+        <h2>마커 색 기준</h2>
+        <select id="colorMode">
+          <option value="phase">추진단계 (진행도)</option>
+          <option value="round">선정 차수</option>
+        </select>
+      </div>
+      <div class="field">
+        <h2>선정 차수 (필터)</h2>
         <label class="chk"><input type="checkbox" data-round="1차공모" checked><span class="dot" style="background:var(--r1)"></span>1차 공모 (21)</label>
         <label class="chk"><input type="checkbox" data-round="2차공모" checked><span class="dot" style="background:var(--r2)"></span>2차 공모 (23)</label>
         <label class="chk"><input type="checkbox" data-round="수시선정" checked><span class="dot" style="background:var(--r3)"></span>수시 선정 (100)</label>
         <label class="chk"><input type="checkbox" data-round="기존구역" checked><span class="dot" style="background:var(--r4)"></span>기존 구역 (30)</label>
+        <div class="note">차수 = 선정된 시기·경로 (진행도와 무관). 필터로만 사용.</div>
         <div class="count" id="count">—</div>
       </div>
       <div class="field">
@@ -303,6 +311,22 @@ const ADDR = {
 };
 
 const ROUND_COLOR = { "1차공모":"#e2483d","2차공모":"#f59e0b","수시선정":"#16a34a","기존구역":"#7c3aed" };
+const ROUND_LABEL = { "1차공모":"1차 공모","2차공모":"2차 공모","수시선정":"수시 선정","기존구역":"기존 구역" };
+
+/* 추진단계 진행 순서 (초기→후기), 4단계 그룹 */
+const PHASES = [
+  { key:0, label:"① 초기 · 진입 여지 큼",   color:"#9ca3af", stages:["후보지선정","신통통보","신통착수","신통자문","용역착수"] },
+  { key:1, label:"② 계획수립 · 공람~심의",  color:"#f59e0b", stages:["주민공람","심의","통심완료"] },
+  { key:2, label:"③ 구역지정~시행자 · 확정", color:"#16a34a", stages:["구역지정","추진위구성","시행자지정(신탁)","시행자지정(조합)"] },
+  { key:3, label:"④ 사업시행~준공",         color:"#2563eb", stages:["인가완료","착공","준공"] }
+];
+const STAGE_ORDER = [];        // 진행순 정렬용
+const STAGE_PHASE = {};        // 단계 → phase index
+PHASES.forEach(p=>p.stages.forEach(st=>{ STAGE_ORDER.push(st); STAGE_PHASE[st]=p.key; }));
+function stagePhase(st){ return STAGE_PHASE.hasOwnProperty(st) ? STAGE_PHASE[st] : 0; }
+
+let colorMode = 'phase';
+function colorFor(site){ return colorMode==='phase' ? PHASES[stagePhase(site.stage)].color : ROUND_COLOR[site.round]; }
 
 /* 구역명 → 지오코딩 주소 추론 */
 function toQuery(gu, name){
@@ -353,9 +377,28 @@ function buildOptions(){
   const gus = [...new Set(SITES.map(s=>s.gu))].sort();
   const guSel = document.getElementById('gu');
   gus.forEach(g=>{ const o=document.createElement('option'); o.value=g; o.textContent=g; guSel.appendChild(o); });
-  const stages = [...new Set(SITES.map(s=>s.stage))].sort();
+
+  // 추진단계: 진행 순서 + phase 그룹(optgroup)
+  const present = new Set(SITES.map(s=>s.stage));
   const stSel = document.getElementById('stage');
-  stages.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; stSel.appendChild(o); });
+  const cnt = {}; SITES.forEach(s=>cnt[s.stage]=(cnt[s.stage]||0)+1);
+  PHASES.forEach(p=>{
+    const inGroup = p.stages.filter(st=>present.has(st));
+    if(!inGroup.length) return;
+    const og = document.createElement('optgroup'); og.label = p.label;
+    inGroup.forEach(st=>{ const o=document.createElement('option'); o.value=st; o.textContent=`${st} (${cnt[st]})`; og.appendChild(o); });
+    stSel.appendChild(og);
+  });
+  updateLegend();
+}
+
+function updateLegend(){
+  const el = document.getElementById('legend');
+  if(colorMode==='phase'){
+    el.innerHTML = PHASES.map(p=>`<span><b style="background:${p.color}"></b>${p.label}</span>`).join('');
+  }else{
+    el.innerHTML = Object.keys(ROUND_COLOR).map(r=>`<span><b style="background:${ROUND_COLOR[r]}"></b>${ROUND_LABEL[r]}</span>`).join('');
+  }
 }
 
 function geocodeAll(){
@@ -380,10 +423,12 @@ function geocodeAll(){
 }
 
 function placeMarker(site, pos){
-  const marker = new kakao.maps.Marker({ position:pos, image:pin(ROUND_COLOR[site.round]) });
+  const marker = new kakao.maps.Marker({ position:pos, image:pin(colorFor(site)) });
   kakao.maps.event.addListener(marker,'click',()=>openInfo(site,pos));
   markers.push({ site, marker });
 }
+
+function recolorMarkers(){ markers.forEach(({site,marker})=>marker.setImage(pin(colorFor(site)))); }
 
 function pin(color){
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 26 34'>
@@ -395,11 +440,11 @@ function pin(color){
 }
 
 function openInfo(site,pos){
-  const c = ROUND_COLOR[site.round];
+  const c = PHASES[stagePhase(site.stage)].color;
   const q = encodeURIComponent(site.addr);
   const html = `<div class="iw">
-    <b>${site.name}</b><span class="tag" style="background:${c}">${site.round.replace('공모',' 공모').replace('선정',' 선정').replace('구역',' 구역')}</span><br>
-    <span style="color:#6b7280">${site.gu} · ${site.stage}</span>
+    <b>${site.name}</b><span class="tag" style="background:${c}">${site.stage}</span><br>
+    <span style="color:#6b7280">${site.gu} · ${ROUND_LABEL[site.round]}</span>
     <div class="meta"><span>📐 ${site.area}㎡</span><span>🏠 ${site.sedae}세대</span></div>
     <div>
       <a href="https://www.eum.go.kr/web/ar/lu/luLandDet.jsp" target="_blank" rel="noopener">🗺️ 용도지역</a>
@@ -416,6 +461,22 @@ function wireControls(){
   document.getElementById('gu').addEventListener('change', applyFilter);
   document.getElementById('stage').addEventListener('change', applyFilter);
   document.querySelectorAll('[data-round]').forEach(cb=>cb.addEventListener('change', applyFilter));
+
+  document.getElementById('colorMode').addEventListener('change', e=>{
+    colorMode = e.target.value; recolorMarkers(); updateLegend();
+  });
+
+  document.getElementById('useDistrict').addEventListener('change', e=>{
+    const leg = document.getElementById('udLegend');
+    if(e.target.checked){
+      map.addOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+      leg.style.display='block';
+      leg.innerHTML = '지적편집도 색상: 주거=노랑계열 · 상업=분홍/빨강 · 공업(준공업)=파랑/보라 · 녹지=초록 (확대할수록 뚜렷)';
+    }else{
+      map.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+      leg.style.display='none';
+    }
+  });
 }
 
 function applyFilter(){
