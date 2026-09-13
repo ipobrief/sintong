@@ -18,6 +18,8 @@
   .legend b{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
   #main{flex:1;display:flex;min-height:0}
   #panel{width:300px;background:var(--panel);border-right:1px solid var(--line);padding:14px;overflow:auto;flex-shrink:0}
+  #resizer{width:7px;flex-shrink:0;cursor:col-resize;background:var(--line);transition:background .15s}
+  #resizer:hover,#resizer.active{background:var(--accent)}
   #panel h2{font-size:13px;margin:0 0 8px;color:var(--muted);font-weight:600;letter-spacing:.02em}
   .field{margin-bottom:16px}
   input[type=text],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff}
@@ -51,7 +53,7 @@
   .modal .chip i{width:10px;height:10px;border-radius:50%;display:inline-block}
   .modal .tipbox{background:#f0f7ff;border:1px solid #d6e6ff;border-radius:10px;padding:12px 14px;margin-top:8px;font-size:13px;line-height:1.6}
   .modal .close{margin-top:22px;width:100%;padding:11px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
-  @media(max-width:640px){#panel{width:100%;position:absolute;z-index:6;height:auto;max-height:55%;box-shadow:var(--shadow)}#main{position:relative}}
+  @media(max-width:640px){#panel{width:100%!important;position:absolute;z-index:6;height:auto;max-height:55%;box-shadow:var(--shadow)}#main{position:relative}#resizer{display:none}}
 </style>
 
 <div id="app">
@@ -59,6 +61,7 @@
     <h1>🏙️ 신통기획 매물지도</h1>
     <span class="sub">서울 신속통합기획 재개발 선정지 174곳 · 용도지역 · 용적률 탐색</span>
     <div class="legend" id="legend"></div>
+    <button class="help-btn" id="panelToggle">◀ 패널</button>
     <button class="help-btn" id="helpBtn">❓ 사용방법</button>
   </header>
   <div id="main">
@@ -111,6 +114,7 @@
         </div>
       </div>
     </aside>
+    <div id="resizer" title="드래그해서 폭 조절"></div>
     <div id="map">
       <div class="banner" id="banner" style="display:none"></div>
       <div class="loading" id="loading" style="display:none">지도 위치 계산 중…</div>
@@ -594,6 +598,26 @@ function wireControls(){
       leg.style.display='none';
     }
   });
+
+  // 패널 접기/펼치기 + 폭 드래그 조절
+  const panel = document.getElementById('panel');
+  const resizer = document.getElementById('resizer');
+  const toggle = document.getElementById('panelToggle');
+  toggle.addEventListener('click', ()=>{
+    const hide = !panel.hidden;
+    panel.hidden = hide; resizer.hidden = hide;
+    toggle.textContent = hide ? '▶ 패널' : '◀ 패널';
+    if(map) setTimeout(()=>map.relayout(), 0);
+  });
+  let dragging=false;
+  resizer.addEventListener('mousedown', e=>{ dragging=true; resizer.classList.add('active'); document.body.style.userSelect='none'; e.preventDefault(); });
+  window.addEventListener('mousemove', e=>{
+    if(!dragging) return;
+    const rect = document.getElementById('main').getBoundingClientRect();
+    let w = Math.max(200, Math.min(600, e.clientX - rect.left));
+    panel.style.width = w+'px';
+  });
+  window.addEventListener('mouseup', ()=>{ if(dragging){ dragging=false; resizer.classList.remove('active'); document.body.style.userSelect=''; if(map) map.relayout(); } });
 
   // 도움말 모달
   const modal = document.getElementById('helpModal');
