@@ -1,0 +1,224 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>신통기획 매물지도</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --panel:#ffffff; --line:#e6e8eb; --text:#1c2024;
+    --muted:#6b7280; --accent:#2b6cff; --accent-soft:#eaf1ff;
+    --r1:#e2483d; --r2:#f59e0b; --r3:#16a34a; --r4:#7c3aed;
+    --shadow:0 2px 10px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;color:var(--text);background:var(--bg)}
+  #app{display:flex;flex-direction:column;height:100vh}
+  header{padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{font-size:16px;margin:0;font-weight:700}
+  header .sub{font-size:12px;color:var(--muted)}
+  .legend{margin-left:auto;display:flex;gap:10px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+  .legend b{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
+  #main{flex:1;display:flex;min-height:0}
+  #panel{width:300px;background:var(--panel);border-right:1px solid var(--line);padding:14px;overflow:auto;flex-shrink:0}
+  #panel h2{font-size:13px;margin:0 0 8px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+  .field{margin-bottom:16px}
+  input[type=text],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff}
+  .chk{display:flex;align-items:center;gap:7px;font-size:13px;padding:5px 0;cursor:pointer}
+  .chk .dot{width:10px;height:10px;border-radius:50%}
+  .count{font-size:12px;color:var(--muted);margin-top:6px}
+  .note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:6px}
+  #map{flex:1;position:relative}
+  .banner{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:5;background:#fff3cd;border:1px solid #ffe69c;color:#664d03;padding:10px 14px;border-radius:10px;font-size:12.5px;box-shadow:var(--shadow);max-width:520px;line-height:1.5}
+  .banner code{background:#00000010;padding:1px 5px;border-radius:4px}
+  .iw{padding:10px 12px;font-size:13px;line-height:1.5;min-width:190px}
+  .iw b{font-size:14px}
+  .iw .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:20px;color:#fff;margin-left:4px}
+  .iw a{display:inline-block;margin:6px 8px 0 0;font-size:12px;color:var(--accent);text-decoration:none}
+  .iw a:hover{text-decoration:underline}
+  @media(max-width:640px){#panel{width:100%;position:absolute;z-index:6;height:auto;max-height:55%;box-shadow:var(--shadow)}#main{position:relative}}
+</style>
+
+<div id="app">
+  <header>
+    <h1>🏙️ 신통기획 매물지도</h1>
+    <span class="sub">신속통합기획 선정지 · 용도지역 · 용적률 통합 탐색 (서울)</span>
+    <div class="legend">
+      <span><b style="background:var(--r1)"></b>1차공모</span>
+      <span><b style="background:var(--r2)"></b>2차공모</span>
+      <span><b style="background:var(--r3)"></b>수시선정</span>
+      <span><b style="background:var(--r4)"></b>기존구역</span>
+    </div>
+  </header>
+  <div id="main">
+    <aside id="panel">
+      <div class="field">
+        <h2>🔍 구역명 검색</h2>
+        <input type="text" id="q" placeholder="예: 창신동, 상도동…" />
+      </div>
+      <div class="field">
+        <h2>자치구</h2>
+        <select id="gu"><option value="">전체</option></select>
+      </div>
+      <div class="field">
+        <h2>선정 차수 (필터)</h2>
+        <label class="chk"><input type="checkbox" data-round="1차공모" checked><span class="dot" style="background:var(--r1)"></span>1차 공모</label>
+        <label class="chk"><input type="checkbox" data-round="2차공모" checked><span class="dot" style="background:var(--r2)"></span>2차 공모</label>
+        <label class="chk"><input type="checkbox" data-round="수시선정" checked><span class="dot" style="background:var(--r3)"></span>수시 선정</label>
+        <label class="chk"><input type="checkbox" data-round="기존구역" checked><span class="dot" style="background:var(--r4)"></span>기존 구역</label>
+        <div class="count" id="count">—</div>
+      </div>
+      <div class="field">
+        <h2>참고 레이어</h2>
+        <div class="note">
+          마커 클릭 → <b>용도지역·용적률</b>은 토지이음/건축물대장으로 바로 이동해 확인합니다.
+          (용도지역 지도 오버레이는 브이월드 연동 예정)
+        </div>
+      </div>
+      <div class="field">
+        <h2>ℹ️ 데이터</h2>
+        <div class="note">
+          현재 지도의 선정지는 <b>확인된 실제 시드 샘플</b>입니다.
+          전체 약 174개 구역(1·2차+수시+기존)은 정비몽땅 표에서 수집해 채울 예정입니다.
+          좌표는 저장하지 않고 <b>구역 주소를 실시간 지오코딩</b>합니다.
+        </div>
+      </div>
+    </aside>
+    <div id="map">
+      <div class="banner" id="banner" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   설정: 카카오맵 JavaScript 키
+   1) https://developers.kakao.com → 애플리케이션 추가
+   2) [앱 키] → JavaScript 키 복사해서 아래에 붙여넣기
+   3) [플랫폼] → Web → 사이트 도메인 등록
+      · 로컬 테스트: http://localhost  (또는 파일 직접 열기용 http://127.0.0.1)
+      · 배포:       https://ipobrief.github.io
+   ───────────────────────────────────────────────────────────── */
+const KAKAO_JS_KEY = "1b2af1b1decfd08ba0216ed2bec18380";
+
+/* 신통기획 선정지 데이터 (시드).
+   전체 목록은 정비몽땅에서 수집 예정. addr = 지오코딩용 주소(동+지번).
+   round: 1차공모 | 2차공모 | 수시선정 | 기존구역 */
+const SINTONG_SITES = [
+  { gu:"종로구",   name:"창신동 23-606 일대", addr:"서울 종로구 창신동 23-606", round:"수시선정" },
+  { gu:"용산구",   name:"청파2구역",          addr:"서울 용산구 청파동2가",     round:"기존구역" },
+  { gu:"용산구",   name:"용산동2가 일대",     addr:"서울 용산구 용산동2가",     round:"수시선정" },
+  { gu:"성동구",   name:"마장동 일대",        addr:"서울 성동구 마장동",        round:"수시선정" },
+  { gu:"도봉구",   name:"방학동 일대",        addr:"서울 도봉구 방학동",        round:"수시선정" },
+  { gu:"동작구",   name:"상도동 일대",        addr:"서울 동작구 상도동",        round:"수시선정" },
+  { gu:"동작구",   name:"사당동 419-1 일대",  addr:"서울 동작구 사당동 419-1",  round:"수시선정" },
+  { gu:"금천구",   name:"독산동 일대",        addr:"서울 금천구 독산동",        round:"수시선정" },
+  { gu:"영등포구", name:"신길동 일대",        addr:"서울 영등포구 신길동",      round:"수시선정" },
+];
+
+const ROUND_COLOR = {
+  "1차공모":"#e2483d", "2차공모":"#f59e0b", "수시선정":"#16a34a", "기존구역":"#7c3aed"
+};
+
+let map, geocoder, infoWindow;
+const markers = []; // {site, marker}
+
+function boot(){
+  if(KAKAO_JS_KEY === "YOUR_KAKAO_JS_KEY" || !KAKAO_JS_KEY){
+    showBanner('⚙️ 카카오맵 JavaScript 키를 넣어주세요. index.html 상단 <code>KAKAO_JS_KEY</code> 값을 발급받은 키로 교체하고, 개발자 콘솔에 도메인(<code>localhost</code>, <code>ipobrief.github.io</code>)을 등록하면 지도가 표시됩니다.');
+    return;
+  }
+  const s = document.createElement('script');
+  s.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services&autoload=false`;
+  s.onerror = () => showBanner('❌ 카카오맵 SDK 로드 실패 — 키/도메인 등록을 확인하세요.');
+  s.onload = () => kakao.maps.load(initMap);
+  document.head.appendChild(s);
+}
+
+function initMap(){
+  map = new kakao.maps.Map(document.getElementById('map'), {
+    center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울시청
+    level: 8
+  });
+  geocoder = new kakao.maps.services.Geocoder();
+  infoWindow = new kakao.maps.InfoWindow({ removable:true });
+
+  buildGuOptions();
+  geocodeAll();
+  wireControls();
+}
+
+function buildGuOptions(){
+  const gus = [...new Set(SINTONG_SITES.map(s=>s.gu))].sort();
+  const sel = document.getElementById('gu');
+  gus.forEach(g=>{ const o=document.createElement('option'); o.value=g; o.textContent=g; sel.appendChild(o); });
+}
+
+function geocodeAll(){
+  let done=0;
+  SINTONG_SITES.forEach(site=>{
+    geocoder.addressSearch(site.addr, (res, status)=>{
+      done++;
+      if(status === kakao.maps.services.Status.OK && res[0]){
+        const pos = new kakao.maps.LatLng(res[0].y, res[0].x);
+        const marker = new kakao.maps.Marker({ position:pos, map, image:pin(ROUND_COLOR[site.round]||'#333') });
+        kakao.maps.event.addListener(marker,'click',()=>openInfo(site,pos));
+        markers.push({ site, marker });
+      }else{
+        console.warn('지오코딩 실패:', site.addr, status);
+      }
+      if(done===SINTONG_SITES.length){ applyFilter(); }
+    });
+  });
+}
+
+function pin(color){
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='26' height='34' viewBox='0 0 26 34'>
+    <path d='M13 0C6 0 0 5.6 0 12.6 0 22 13 34 13 34s13-12 13-21.4C26 5.6 20 0 13 0z' fill='${color}'/>
+    <circle cx='13' cy='12.5' r='5' fill='#fff'/></svg>`;
+  return new kakao.maps.MarkerImage(
+    'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg))),
+    new kakao.maps.Size(26,34), { offset:new kakao.maps.Point(13,34) }
+  );
+}
+
+function openInfo(site,pos){
+  const c = ROUND_COLOR[site.round]||'#333';
+  const q = encodeURIComponent(site.addr);
+  const html = `<div class="iw">
+    <b>${site.name}</b><span class="tag" style="background:${c}">${site.round}</span><br>
+    <span style="color:#6b7280">${site.gu}</span>
+    <div>
+      <a href="https://www.eum.go.kr/web/ar/lu/luLandDet.jsp" target="_blank" rel="noopener">🗺️ 용도지역(토지이음)</a>
+      <a href="https://cleanup.seoul.go.kr/cleanup/view/publicIntgrPlanSttn.do" target="_blank" rel="noopener">📋 정비몽땅</a>
+      <a href="https://m.land.naver.com/search/result/${q}" target="_blank" rel="noopener">🏠 네이버부동산</a>
+    </div></div>`;
+  infoWindow.setContent(html);
+  infoWindow.setPosition(pos);
+  infoWindow.open(map);
+}
+
+function wireControls(){
+  document.getElementById('q').addEventListener('input', applyFilter);
+  document.getElementById('gu').addEventListener('change', applyFilter);
+  document.querySelectorAll('[data-round]').forEach(cb=>cb.addEventListener('change', applyFilter));
+}
+
+function applyFilter(){
+  const q = document.getElementById('q').value.trim();
+  const gu = document.getElementById('gu').value;
+  const rounds = new Set([...document.querySelectorAll('[data-round]:checked')].map(c=>c.dataset.round));
+  let n=0;
+  markers.forEach(({site,marker})=>{
+    const ok = rounds.has(site.round)
+      && (!gu || site.gu===gu)
+      && (!q || site.name.includes(q) || site.gu.includes(q));
+    marker.setMap(ok?map:null);
+    if(ok) n++;
+  });
+  document.getElementById('count').textContent = `표시: ${n} / ${markers.length}곳 (지오코딩 완료 기준)`;
+}
+
+function showBanner(html){
+  const b=document.getElementById('banner'); b.innerHTML=html; b.style.display='block';
+}
+
+boot();
+</script>
