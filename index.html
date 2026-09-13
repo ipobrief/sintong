@@ -562,7 +562,7 @@ function pin(color){
 function openInfo(site,pos){
   const c = PHASES[stagePhase(site.stage)].color;
   const bs = buyStatus(site.stage);
-  const q = encodeURIComponent(site.gu + ' ' + site.name.replace(/\(.*?\)/g,'').trim());
+  const q = encodeURIComponent(dongOnly(site.addr).replace(/^서울\s*/,''));
   const html = `<div class="iw">
     <b>${site.name}</b><span class="tag" style="background:${c}">${site.stage}</span><br>
     <span style="color:#6b7280">${site.gu} · ${ROUND_LABEL[site.round]}</span>
